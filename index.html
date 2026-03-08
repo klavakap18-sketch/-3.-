@@ -2,386 +2,107 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Genially Timer Editor</title>
-
+<title>Обратный таймер для Genially</title>
 <style>
-
-body{
-font-family:Arial;
-background:#0f172a;
-color:white;
-padding:30px;
-}
-
-.container{
-display:grid;
-grid-template-columns:350px 1fr;
-gap:40px;
-}
-
-.panel{
-background:#1e293b;
-padding:20px;
-border-radius:10px;
-}
-
-h2{
-margin-top:0;
-}
-
-input,select{
-width:100%;
-margin-top:6px;
-margin-bottom:12px;
-padding:6px;
-border-radius:6px;
-border:none;
-}
-
-button{
-background:#3b82f6;
-border:none;
-padding:10px;
-border-radius:6px;
-color:white;
-cursor:pointer;
-}
-
-.previewBox{
-display:flex;
-justify-content:center;
-align-items:center;
-height:250px;
-background:transparent;
-}
-
-.timer-box{
-width:320px;
-height:70px;
-border-radius:10px;
-overflow:hidden;
-background:#333;
-position:relative;
-}
-
-.timer-fill{
-position:absolute;
-left:0;
-top:0;
-height:100%;
-width:100%;
-background:#22c55e;
-}
-
-.timer-image{
-position:absolute;
-width:100%;
-height:100%;
-object-fit:cover;
-opacity:.35;
-}
-
-.time{
-text-align:center;
-font-size:32px;
-margin-top:10px;
-}
-
-textarea{
-width:100%;
-height:120px;
-margin-top:10px;
-}
-
+  body { background: transparent; font-family: Arial, sans-serif; }
+  #timerContainer { position: relative; width: 300px; height: 100px; margin: 20px auto; }
+  canvas { border-radius: 10px; box-shadow: 0 0 20px #0ff, 0 0 40px #0ff, 0 0 60px #0ff; background-color: rgba(0,0,0,0); }
+  #timeText { position: absolute; bottom: 5px; width: 100%; text-align: center; font-size: 24px; color: #0ff; }
+  #controls { text-align: center; margin-top: 10px; }
+  input[type=number], input[type=color], input[type=text], input[type=file] { margin: 5px; }
 </style>
 </head>
-
 <body>
 
-<h1>Genially Countdown Timer Editor</h1>
+<div id="timerEditor">
+  <div id="settings">
+    <label>Минуты: <input type="number" id="minutes" value="1" min="0"></label>
+    <label>Секунды: <input type="number" id="seconds" value="30" min="0" max="59"></label><br>
+    <label>Цвет таймера: <input type="color" id="timerColor" value="#0ff"></label>
+    <label>Шрифт цифр: <input type="text" id="fontFamily" value="Arial"></label>
+    <label>Размер шрифта: <input type="number" id="fontSize" value="24"></label><br>
+    <label>Изображение таймера (фон): <input type="file" id="timerImage" accept="image/*"></label>
+    <label>Аудио при завершении: <input type="file" id="endAudio" accept="audio/*"></label>
+  </div>
 
-<div class="container">
+  <div id="timerContainer">
+    <canvas id="timerCanvas" width="300" height="100"></canvas>
+    <div id="timeText"></div>
+  </div>
 
-<div class="panel">
-
-<h2>Настройки</h2>
-
-<label>Минуты</label>
-<input type="number" id="minutes" value="2">
-
-<label>Секунды</label>
-<input type="number" id="seconds" value="0">
-
-<label>Цвет заполнения</label>
-<input type="color" id="fillColor" value="#22c55e">
-
-<label>Цвет фона</label>
-<input type="color" id="bgColor" value="#333333">
-
-<label>Картинка (URL)</label>
-<input type="text" id="imageURL" placeholder="https://...">
-
-<label>Аудио по окончанию</label>
-<input type="text" id="audioURL" placeholder="https://...">
-
-<label>Язык</label>
-<select id="lang">
-<option value="ru">Русский</option>
-<option value="en">English</option>
-</select>
-
-<button onclick="updatePreview()">Обновить предпросмотр</button>
-
-<br><br>
-
-<button onclick="generateCode()">Получить код</button>
-
-<textarea id="code"></textarea>
-
-</div>
-
-
-<div class="panel">
-
-<h2>Предпросмотр</h2>
-
-<div class="previewBox">
-
-<div>
-
-<div class="timer-box">
-
-<img class="timer-image" id="pImage">
-
-<div class="timer-fill" id="pFill"></div>
-
-</div>
-
-<div class="time" id="pTime">02:00</div>
-
-</div>
-
-</div>
-
-</div>
-
+  <div id="controls">
+    <button id="startBtn">Запустить</button>
+    <button id="stopBtn">Остановить</button>
+  </div>
 </div>
 
 <script>
+const canvas = document.getElementById('timerCanvas');
+const ctx = canvas.getContext('2d');
+const timeText = document.getElementById('timeText');
+let timerInterval;
+let totalSeconds = parseInt(document.getElementById('minutes').value)*60 + parseInt(document.getElementById('seconds').value);
 
-let total
-let duration
-let interval
+function drawTimer(progress) {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const color = document.getElementById('timerColor').value;
 
-function format(t){
+  // Фон из изображения
+  const imgInput = document.getElementById('timerImage').files[0];
+  if(imgInput){
+    const img = new Image();
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = color;
+      ctx.fillRect(0, 0, canvas.width * progress, canvas.height);
+    };
+    img.src = URL.createObjectURL(imgInput);
+  } else {
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, canvas.width * progress, canvas.height);
+  }
 
-let m=Math.floor(t/60)
-let s=t%60
-
-return m.toString().padStart(2,'0')+":"+s.toString().padStart(2,'0')
-
+  // Текст с цифрами
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  timeText.style.fontFamily = document.getElementById('fontFamily').value;
+  timeText.style.fontSize = document.getElementById('fontSize').value + 'px';
+  timeText.innerText = `${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
 }
 
-function startPreview(){
-
-clearInterval(interval)
-
-let m=parseInt(minutes.value)
-let s=parseInt(seconds.value)
-
-duration=m*60+s
-total=duration
-
-interval=setInterval(()=>{
-
-total--
-
-if(total<0){
-
-clearInterval(interval)
-
-let audioURL=document.getElementById("audioURL").value
-
-if(audioURL){
-
-let a=new Audio(audioURL)
-a.play()
-
+function startTimer() {
+  clearInterval(timerInterval);
+  totalSeconds = parseInt(document.getElementById('minutes').value)*60 + parseInt(document.getElementById('seconds').value);
+  const initialSeconds = totalSeconds;
+  timerInterval = setInterval(() => {
+    if(totalSeconds <= 0){
+      clearInterval(timerInterval);
+      // Проиграть аудио
+      const audioFile = document.getElementById('endAudio').files[0];
+      if(audioFile){
+        const audio = new Audio(URL.createObjectURL(audioFile));
+        audio.play();
+      }
+    } else {
+      totalSeconds--;
+      drawTimer(totalSeconds / initialSeconds);
+    }
+  }, 1000);
 }
 
-return
-
-}
-
-pTime.innerText=format(total)
-
-let percent=(total/duration)*100
-
-pFill.style.width=percent+"%"
-
-},1000)
-
-}
-
-function updatePreview(){
-
-pFill.style.background=fillColor.value
-pFill.parentElement.style.background=bgColor.value
-
-let img=imageURL.value
-
-if(img){
-
-pImage.src=img
-
-}else{
-
-pImage.removeAttribute("src")
-
-}
-
-startPreview()
-
-}
-
-function generateCode(){
-
-let m=minutes.value
-let s=seconds.value
-let fill=encodeURIComponent(fillColor.value)
-let bg=encodeURIComponent(bgColor.value)
-let img=encodeURIComponent(imageURL.value)
-let audio=encodeURIComponent(audioURL.value)
-let lang=lang.value
-
-let src=location.origin+location.pathname+
-`?timer=1&m=${m}&s=${s}&fill=${fill}&bg=${bg}&img=${img}&audio=${audio}&lang=${lang}`
-
-let iframe=`<iframe src="${src}" width="340" height="120" frameborder="0" allow="autoplay"></iframe>`
-
-code.value=iframe
-
-}
-
-if(new URLSearchParams(location.search).get("timer")){
-
-document.body.innerHTML=`
-
-<style>
-
-body{
-margin:0;
-background:transparent;
-font-family:Arial;
-display:flex;
-flex-direction:column;
-justify-content:center;
-align-items:center;
-height:100vh;
-}
-
-.timer-box{
-width:320px;
-height:70px;
-border-radius:10px;
-overflow:hidden;
-position:relative;
-}
-
-.timer-fill{
-position:absolute;
-top:0;
-left:0;
-height:100%;
-}
-
-.timer-image{
-position:absolute;
-width:100%;
-height:100%;
-object-fit:cover;
-opacity:.35;
-}
-
-.time{
-font-size:32px;
-margin-top:10px;
-color:white;
-}
-
-</style>
-
-<div>
-
-<div class="timer-box">
-
-<img class="timer-image" id="img">
-
-<div class="timer-fill" id="fill"></div>
-
-</div>
-
-<div class="time" id="time"></div>
-
-</div>
-
-<audio id="alarm"></audio>
-
-`
-
-let p=new URLSearchParams(location.search)
-
-let m=parseInt(p.get("m"))
-let s=parseInt(p.get("s"))
-
-let duration=m*60+s
-let total=duration
-
-fill.style.background=p.get("fill")
-fill.parentElement.style.background=p.get("bg")
-
-let img=p.get("img")
-
-if(img) document.getElementById("img").src=img
-
-let audio=p.get("audio")
-
-if(audio) alarm.src=audio
-
-function format(t){
-
-let mm=Math.floor(t/60)
-let ss=t%60
-
-return mm.toString().padStart(2,'0')+":"+ss.toString().padStart(2,'0')
-
-}
-
-function update(){
-
-time.innerText=format(total)
-
-let percent=(total/duration)*100
-
-fill.style.width=percent+"%"
-
-if(total<=0){
-
-alarm.play()
-clearInterval(timer)
-
-}
-
-total--
-
-}
-
-let timer=setInterval(update,1000)
-
-update()
-
-}
-
+document.getElementById('startBtn').onclick = startTimer;
+document.getElementById('stopBtn').onclick = () => clearInterval(timerInterval);
+
+// Предпросмотр при изменении значений
+document.getElementById('minutes').addEventListener('change', () => drawTimer(1));
+document.getElementById('seconds').addEventListener('change', () => drawTimer(1));
+document.getElementById('timerColor').addEventListener('change', () => drawTimer(1));
+document.getElementById('fontFamily').addEventListener('change', () => drawTimer(1));
+document.getElementById('fontSize').addEventListener('change', () => drawTimer(1));
+document.getElementById('timerImage').addEventListener('change', () => drawTimer(1));
+
+// Инициалный рендер
+drawTimer(1);
 </script>
 
 </body>
