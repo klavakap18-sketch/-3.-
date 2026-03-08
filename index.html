@@ -1,78 +1,96 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Genially Timer Builder</title>
+<title>Genially Timer Editor</title>
 
 <style>
 
 body{
 font-family:Arial;
-background:#f3f4f6;
-padding:20px;
+background:#0f172a;
+color:white;
+padding:30px;
 }
 
 .container{
-display:flex;
+display:grid;
+grid-template-columns:350px 1fr;
 gap:40px;
-flex-wrap:wrap;
 }
 
 .panel{
-background:white;
+background:#1e293b;
 padding:20px;
 border-radius:10px;
-width:340px;
-box-shadow:0 5px 10px rgba(0,0,0,0.1);
 }
 
-.preview{
+h2{
+margin-top:0;
+}
+
+input,select{
+width:100%;
+margin-top:6px;
+margin-bottom:12px;
+padding:6px;
+border-radius:6px;
+border:none;
+}
+
+button{
+background:#3b82f6;
+border:none;
+padding:10px;
+border-radius:6px;
+color:white;
+cursor:pointer;
+}
+
+.previewBox{
+display:flex;
+justify-content:center;
+align-items:center;
+height:250px;
 background:transparent;
 }
 
-.timer{
-width:300px;
-height:150px;
-background:#eee;
+.timer-box{
+width:320px;
+height:70px;
 border-radius:10px;
 overflow:hidden;
+background:#333;
 position:relative;
 }
 
-.fill{
+.timer-fill{
 position:absolute;
-bottom:0;
 left:0;
+top:0;
+height:100%;
+width:100%;
+background:#22c55e;
+}
+
+.timer-image{
+position:absolute;
 width:100%;
 height:100%;
-background:#00aaff;
-transform-origin:left;
+object-fit:cover;
+opacity:.35;
 }
 
 .time{
 text-align:center;
-font-size:30px;
-margin-top:8px;
+font-size:32px;
+margin-top:10px;
 }
 
 textarea{
 width:100%;
-height:180px;
-}
-
-button{
+height:120px;
 margin-top:10px;
-padding:8px 12px;
-}
-
-.feedback{
-display:none;
-text-align:center;
-margin-top:10px;
-}
-
-.feedback img{
-max-width:200px;
 }
 
 </style>
@@ -80,59 +98,69 @@ max-width:200px;
 
 <body>
 
-<h2>Genially Timer Builder (GitHub Widget)</h2>
+<h1>Genially Countdown Timer Editor</h1>
 
 <div class="container">
 
 <div class="panel">
 
-<label>Minutes</label>
-<input id="minutes" type="number" value="1">
+<h2>Настройки</h2>
 
-<label>Seconds</label>
-<input id="seconds" type="number" value="0">
+<label>Минуты</label>
+<input type="number" id="minutes" value="2">
+
+<label>Секунды</label>
+<input type="number" id="seconds" value="0">
+
+<label>Цвет заполнения</label>
+<input type="color" id="fillColor" value="#22c55e">
+
+<label>Цвет фона</label>
+<input type="color" id="bgColor" value="#333333">
+
+<label>Картинка (URL)</label>
+<input type="text" id="imageURL" placeholder="https://...">
+
+<label>Аудио по окончанию</label>
+<input type="text" id="audioURL" placeholder="https://...">
+
+<label>Язык</label>
+<select id="lang">
+<option value="ru">Русский</option>
+<option value="en">English</option>
+</select>
+
+<button onclick="updatePreview()">Обновить предпросмотр</button>
 
 <br><br>
 
-<label>Progress color</label>
-<input id="color" type="color" value="#00aaff">
-
-<br><br>
-
-<label>Background color</label>
-<input id="bgcolor" type="color" value="#eeeeee">
-
-<br><br>
-
-<label>Feedback GIF/Image URL</label>
-<input id="feedbackImg" type="text">
-
-<br><br>
-
-<label>Feedback Audio URL</label>
-<input id="feedbackAudio" type="text">
-
-<br>
-
-<button onclick="previewTimer()">Preview</button>
-<button onclick="generateEmbed()">Generate Genially Code</button>
+<button onclick="generateCode()">Получить код</button>
 
 <textarea id="code"></textarea>
 
 </div>
 
-<div class="preview">
 
-<div class="timer" id="box">
-<div class="fill" id="fill"></div>
+<div class="panel">
+
+<h2>Предпросмотр</h2>
+
+<div class="previewBox">
+
+<div>
+
+<div class="timer-box">
+
+<img class="timer-image" id="pImage">
+
+<div class="timer-fill" id="pFill"></div>
+
 </div>
 
-<div class="time" id="time">01:00</div>
+<div class="time" id="pTime">02:00</div>
 
-<button onclick="stopTimer()">Stop</button>
+</div>
 
-<div id="feedback" class="feedback">
-<img id="feedbackImage">
 </div>
 
 </div>
@@ -141,88 +169,216 @@ max-width:200px;
 
 <script>
 
-let total=60
-let remain=60
-let timer
-
-function previewTimer(){
-
-let m=parseInt(minutes.value)||0
-let s=parseInt(seconds.value)||0
-
-total=m*60+s
-remain=total
-
-box.style.background=bgcolor.value
-fill.style.background=color.value
-
-time.innerText=format(remain)
-
-if(timer)clearInterval(timer)
-
-timer=setInterval(run,1000)
-
-}
-
-function run(){
-
-remain--
-
-if(remain<0){
-clearInterval(timer)
-return
-}
-
-time.innerText=format(remain)
-
-let p=remain/total
-fill.style.transform="scaleX("+p+")"
-
-}
-
-function stopTimer(){
-
-clearInterval(timer)
-
-if(remain>0){
-
-if(feedbackImg.value){
-feedbackImage.src=feedbackImg.value
-feedback.style.display="block"
-}
-
-if(feedbackAudio.value){
-new Audio(feedbackAudio.value).play()
-}
-
-}
-
-}
+let total
+let duration
+let interval
 
 function format(t){
 
 let m=Math.floor(t/60)
 let s=t%60
 
-return String(m).padStart(2,'0')+":"+String(s).padStart(2,'0')
+return m.toString().padStart(2,'0')+":"+s.toString().padStart(2,'0')
 
 }
 
-function generateEmbed(){
+function startPreview(){
 
-let code=`
+clearInterval(interval)
 
-<iframe
-src="https://YOUR_GITHUB_USERNAME.github.io/genially-timer-widget/widget.html?m=${minutes.value}&s=${seconds.value}&color=${color.value}&bg=${bgcolor.value}&fimg=${encodeURIComponent(feedbackImg.value)}&faudio=${encodeURIComponent(feedbackAudio.value)}"
-width="320"
-height="220"
-frameborder="0"
-style="background:transparent">
-</iframe>
+let m=parseInt(minutes.value)
+let s=parseInt(seconds.value)
+
+duration=m*60+s
+total=duration
+
+interval=setInterval(()=>{
+
+total--
+
+if(total<0){
+
+clearInterval(interval)
+
+let audioURL=document.getElementById("audioURL").value
+
+if(audioURL){
+
+let a=new Audio(audioURL)
+a.play()
+
+}
+
+return
+
+}
+
+pTime.innerText=format(total)
+
+let percent=(total/duration)*100
+
+pFill.style.width=percent+"%"
+
+},1000)
+
+}
+
+function updatePreview(){
+
+pFill.style.background=fillColor.value
+pFill.parentElement.style.background=bgColor.value
+
+let img=imageURL.value
+
+if(img){
+
+pImage.src=img
+
+}else{
+
+pImage.removeAttribute("src")
+
+}
+
+startPreview()
+
+}
+
+function generateCode(){
+
+let m=minutes.value
+let s=seconds.value
+let fill=encodeURIComponent(fillColor.value)
+let bg=encodeURIComponent(bgColor.value)
+let img=encodeURIComponent(imageURL.value)
+let audio=encodeURIComponent(audioURL.value)
+let lang=lang.value
+
+let src=location.origin+location.pathname+
+`?timer=1&m=${m}&s=${s}&fill=${fill}&bg=${bg}&img=${img}&audio=${audio}&lang=${lang}`
+
+let iframe=`<iframe src="${src}" width="340" height="120" frameborder="0" allow="autoplay"></iframe>`
+
+code.value=iframe
+
+}
+
+if(new URLSearchParams(location.search).get("timer")){
+
+document.body.innerHTML=`
+
+<style>
+
+body{
+margin:0;
+background:transparent;
+font-family:Arial;
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+height:100vh;
+}
+
+.timer-box{
+width:320px;
+height:70px;
+border-radius:10px;
+overflow:hidden;
+position:relative;
+}
+
+.timer-fill{
+position:absolute;
+top:0;
+left:0;
+height:100%;
+}
+
+.timer-image{
+position:absolute;
+width:100%;
+height:100%;
+object-fit:cover;
+opacity:.35;
+}
+
+.time{
+font-size:32px;
+margin-top:10px;
+color:white;
+}
+
+</style>
+
+<div>
+
+<div class="timer-box">
+
+<img class="timer-image" id="img">
+
+<div class="timer-fill" id="fill"></div>
+
+</div>
+
+<div class="time" id="time"></div>
+
+</div>
+
+<audio id="alarm"></audio>
 
 `
 
-document.getElementById("code").value=code
+let p=new URLSearchParams(location.search)
+
+let m=parseInt(p.get("m"))
+let s=parseInt(p.get("s"))
+
+let duration=m*60+s
+let total=duration
+
+fill.style.background=p.get("fill")
+fill.parentElement.style.background=p.get("bg")
+
+let img=p.get("img")
+
+if(img) document.getElementById("img").src=img
+
+let audio=p.get("audio")
+
+if(audio) alarm.src=audio
+
+function format(t){
+
+let mm=Math.floor(t/60)
+let ss=t%60
+
+return mm.toString().padStart(2,'0')+":"+ss.toString().padStart(2,'0')
+
+}
+
+function update(){
+
+time.innerText=format(total)
+
+let percent=(total/duration)*100
+
+fill.style.width=percent+"%"
+
+if(total<=0){
+
+alarm.play()
+clearInterval(timer)
+
+}
+
+total--
+
+}
+
+let timer=setInterval(update,1000)
+
+update()
 
 }
 
