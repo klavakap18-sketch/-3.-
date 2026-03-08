@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Genially Timer Builder</title>
+
+<style>
+
+body{
+font-family:Arial;
+background:#f3f4f6;
+padding:20px;
+}
+
+.container{
+display:flex;
+gap:40px;
+flex-wrap:wrap;
+}
+
+.panel{
+background:white;
+padding:20px;
+border-radius:10px;
+width:340px;
+box-shadow:0 5px 10px rgba(0,0,0,0.1);
+}
+
+.preview{
+background:transparent;
+}
+
+.timer{
+width:300px;
+height:150px;
+background:#eee;
+border-radius:10px;
+overflow:hidden;
+position:relative;
+}
+
+.fill{
+position:absolute;
+bottom:0;
+left:0;
+width:100%;
+height:100%;
+background:#00aaff;
+transform-origin:left;
+}
+
+.time{
+text-align:center;
+font-size:30px;
+margin-top:8px;
+}
+
+textarea{
+width:100%;
+height:180px;
+}
+
+button{
+margin-top:10px;
+padding:8px 12px;
+}
+
+.feedback{
+display:none;
+text-align:center;
+margin-top:10px;
+}
+
+.feedback img{
+max-width:200px;
+}
+
+</style>
+</head>
+
+<body>
+
+<h2>Genially Timer Builder (GitHub Widget)</h2>
+
+<div class="container">
+
+<div class="panel">
+
+<label>Minutes</label>
+<input id="minutes" type="number" value="1">
+
+<label>Seconds</label>
+<input id="seconds" type="number" value="0">
+
+<br><br>
+
+<label>Progress color</label>
+<input id="color" type="color" value="#00aaff">
+
+<br><br>
+
+<label>Background color</label>
+<input id="bgcolor" type="color" value="#eeeeee">
+
+<br><br>
+
+<label>Feedback GIF/Image URL</label>
+<input id="feedbackImg" type="text">
+
+<br><br>
+
+<label>Feedback Audio URL</label>
+<input id="feedbackAudio" type="text">
+
+<br>
+
+<button onclick="previewTimer()">Preview</button>
+<button onclick="generateEmbed()">Generate Genially Code</button>
+
+<textarea id="code"></textarea>
+
+</div>
+
+<div class="preview">
+
+<div class="timer" id="box">
+<div class="fill" id="fill"></div>
+</div>
+
+<div class="time" id="time">01:00</div>
+
+<button onclick="stopTimer()">Stop</button>
+
+<div id="feedback" class="feedback">
+<img id="feedbackImage">
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+let total=60
+let remain=60
+let timer
+
+function previewTimer(){
+
+let m=parseInt(minutes.value)||0
+let s=parseInt(seconds.value)||0
+
+total=m*60+s
+remain=total
+
+box.style.background=bgcolor.value
+fill.style.background=color.value
+
+time.innerText=format(remain)
+
+if(timer)clearInterval(timer)
+
+timer=setInterval(run,1000)
+
+}
+
+function run(){
+
+remain--
+
+if(remain<0){
+clearInterval(timer)
+return
+}
+
+time.innerText=format(remain)
+
+let p=remain/total
+fill.style.transform="scaleX("+p+")"
+
+}
+
+function stopTimer(){
+
+clearInterval(timer)
+
+if(remain>0){
+
+if(feedbackImg.value){
+feedbackImage.src=feedbackImg.value
+feedback.style.display="block"
+}
+
+if(feedbackAudio.value){
+new Audio(feedbackAudio.value).play()
+}
+
+}
+
+}
+
+function format(t){
+
+let m=Math.floor(t/60)
+let s=t%60
+
+return String(m).padStart(2,'0')+":"+String(s).padStart(2,'0')
+
+}
+
+function generateEmbed(){
+
+let code=`
+
+<iframe
+src="https://YOUR_GITHUB_USERNAME.github.io/genially-timer-widget/widget.html?m=${minutes.value}&s=${seconds.value}&color=${color.value}&bg=${bgcolor.value}&fimg=${encodeURIComponent(feedbackImg.value)}&faudio=${encodeURIComponent(feedbackAudio.value)}"
+width="320"
+height="220"
+frameborder="0"
+style="background:transparent">
+</iframe>
+
+`
+
+document.getElementById("code").value=code
+
+}
+
+</script>
+
+</body>
+</html>
